@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  Build-PC:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2022, ubuntu-22.04, ubuntu-24.04, macos-13]
+  Build:
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,98 +26,28 @@ jobs:
         run: pyinstaller riitag-rpc.spec
 
       - name: Mark as executable
-        if: matrix.os != 'windows-2022'
         run: chmod -R +x dist/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-x64
-          path: dist
+          name: riitag-rpc-x64
+          path: dist/riitag-rpc
 
-  Build-RPI:
-    runs-on: ubuntu-22.04
+  Release:
+    runs-on: ubuntu-24.04
+    needs: Build
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Raspberry Pi release
-        uses: pguyot/arm-runner-action@v2
-        with:
-          base_image: raspios_lite_arm64:latest
-          cpu: cortex-a53
-          cpu_info: cpuinfo/raspberrypi_4b
-          bind_mount_repository: true
-          commands: |
-            sudo apt-get update
-            sudo apt-get install -y python3-pip python3-venv
-            python3 -m venv .venv
-            .venv/bin/pip install --upgrade pip
-            .venv/bin/pip install -r requirements.txt
-            .venv/bin/pip install pyinstaller
-            .venv/bin/pyinstaller riitag-rpc.spec
-            chmod -R +x dist/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rpi-4b-aarch64
-          path: dist
-
-  Collect-Artifacts:
-    runs-on: ubuntu-22.04
-    needs: [Build-PC, Build-RPI]
-    steps:
-      - name: Download ubuntu-22.04-x64
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: ubuntu-22.04-x64
-          path: ubuntu22
-
-      - name: Download ubuntu-24.04-x64
-        uses: actions/download-artifact@v4
-        with:
-          name: ubuntu-24.04-x64
-          path: ubuntu24
-
-      - name: Download macos-13-x64
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-13-x64
-          path: macos
-
-      - name: Download windows-2022-x64
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-2022-x64
-          path: windows
-
-      - name: Download rpi-4b-aarch64
-        uses: actions/download-artifact@v4
-        with:
-          name: rpi-4b-aarch64
-          path: rpi4b
+          name: riitag-rpc-x64
+          path: releases
 
       - name: Get environment variables
         run: |
           echo REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//") >> $GITHUB_ENV
           echo DATETIME=$(date '+%Y%m%d-%H%M%S') >> $GITHUB_ENV
-
-      - name: Collect artifacts
-        run: |
-          mkdir -p releases
-          mv ubuntu22/riitag-rpc     releases/RiiTag-RPC_Ubuntu22
-          mv ubuntu24/riitag-rpc     releases/RiiTag-RPC_Ubuntu24
-          mv    macos/riitag-rpc     releases/RiiTag-RPC_MacOS
-          mv  windows/riitag-rpc.exe releases/RiiTag-RPC_Windows.exe
-          mv    rpi4b/riitag-rpc     releases/RiiTag-RPC_Rpi4B
-          chmod -R +x releases/
-          tar -cvf all-artifacts.tar.bz2 releases/
-
-      - name: Upload collected artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-artifacts
-          path: all-artifacts.tar.bz2
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -131,4 +57,4 @@ jobs:
           prerelease: true
           generate_release_notes: true
           name: Nightly-${{ env.REPOSITORY_NAME }}-${{ env.DATETIME }}
-          files: releases/*
+          files: releases/riitag-rpc

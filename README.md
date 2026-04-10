@@ -1,3 +1,5 @@
+## Forked because the original's ubuntu binary was not working for me, built and tested on Arch with Python 3.14 and Vesktop
+
 # RiiTag-RPC
 
 ![](https://img.shields.io/github/downloads/t0g3pii/RiiTag-RPC/total)
@@ -8,7 +10,22 @@
 RiiTag-RPC allows you to show your Discord friends what you're playing on your Wii or Wii U by connecting to your [RiiTag](https://riitag.t0g3pii.de/) account.
 
 ## Instructions
-1. Grab the latest release from [here](https://github.com/t0g3pii/RiiTag-RPC/releases/latest).
+1. Build the program
+```bash
+git clone https://github.com/krypt0graphy/RiiTag-RPC.git
+cd RiiTag-RPC
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install pyinstaller
+pyinstaller riitag-rpc.spec
+#Binary will be at dist/riitag-rpc
+```
+Or download prebuilt from the [releases page](../../releases) and mark as executable:
+```bash
+chmod +x riitag-rpc
+```
+
 2. Follow the instructions available [here](/GUIDE.md#riitag-rpc).
 
 ## Running on Raspberry Pi
