@@ -5,7 +5,6 @@ import threading
 import traceback
 import uuid
 
-import nest_asyncio
 import sentry_sdk
 from prompt_toolkit.application import Application, DummyApplication, get_app
 from prompt_toolkit.formatted_text import HTML
@@ -19,8 +18,6 @@ from prompt_toolkit.widgets import Frame
 import menus
 from riitag import oauth2, user, watcher, presence, preferences
 from riitag.util import get_cache
-
-nest_asyncio.apply()
 
 
 def on_error(exc_type, exc_value, exc_traceback):
@@ -119,10 +116,9 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     release=f'riitag-rpc@{VERSION}'
 )
-with sentry_sdk.configure_scope() as scope:
-    # noinspection PyDunderSlots,PyUnresolvedReferences
-    scope.user = {'id': get_user_id()}
-    scope.set_tag('bundled', is_bundled())
+
+sentry_sdk.set_user({'id': get_user_id()})
+sentry_sdk.set_tag('bundled', is_bundled())
 
 
 class RiiTagApplication(Application):
